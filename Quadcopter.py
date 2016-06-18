@@ -1,17 +1,6 @@
 #!/usr/bin/env python
 
-####################################################################################################
-####################################################################################################
-##                                                                                                ##
-## Hove's Raspberry Pi Python Quadcopter Flight Controller.  Open Source @ GitHub                 ##
-## PiStuffing/Quadcopter under GPL for non-commercial application.  Any code derived from         ##
-## this should retain this copyright comment.                                                     ##
-##                                                                                                ##
-## Copyright 2012 - 2016 Andy Baker (Hove) - andy@pistuffing.co.uk                                ##
-##                                                                                                ##
-####################################################################################################
-####################################################################################################
-
+# import libraries
 from __future__ import division
 from __future__ import with_statement
 import signal
@@ -139,17 +128,7 @@ class I2C:
         return self.misses
 
 
-####################################################################################################
-#
-#  Gyroscope / Accelerometer class for reading position / movement.  Works with the Invensense IMUs:
-#
-#  - MPU-6050
-#  - MPU-9150
-#  - MPU-9250
-#
-#  The compass / magnetometer of the MPU-9250 is not used
-#
-####################################################################################################
+# assign MPU6050 values to their registers
 class MPU6050:
     i2c = None
 
@@ -276,6 +255,7 @@ class MPU6050:
     __SCALE_GYRO = 500.0 * math.pi / (65536 * 180)
     __SCALE_ACCEL = 8.0 / 65536                                                           #AB! +/-4g
 
+# equivalent of constructor and is for MPU6050
     def __init__(self, address=0x68, alpf=2, glpf=1):
         self.i2c = I2C(address)
         self.address = address
@@ -627,103 +607,6 @@ class MS5611 :
         #-------------------------------------------------------------------------------------------
         self.i2c.writeByte(self.__MS5611_RESET)
         time.sleep(0.1)
-
-
-####################################################################################################
-#
-#  Ultrasonic range finder
-#
-####################################################################################################
-class SRF02:
-    i2c = None
-
-    #Reisters/etc
-    __SRF02_RA_CONFIG = 0x00
-    __SRF02_RA_RNG_HI = 0x02
-    __SRF02_RA_RNG_LO = 0x03
-    __SRF02_RA_AUTO_HI = 0x04
-    __SRF02_RA_AUTO_LO = 0x05
-
-    def __init__(self, address=0x70):
-        self.i2c = I2C(address)
-
-
-    def pingProximity(self):
-        #-------------------------------------------------------------------------------------------
-        # Set up range units as centimeters and ping
-        #-------------------------------------------------------------------------------------------
-        self.i2c.write8(self.__SRF02_RA_CONFIG, 0x51)
-
-    def pingProcessed(self):
-        #-------------------------------------------------------------------------------------------
-        # Check if data is available
-        #-------------------------------------------------------------------------------------------
-        rc = self.i2c.read8(self.__SRF02_RA_CONFIG)
-        if rc == 0xFF:
-            return False
-        else:
-            return True
-
-    def readProximity(self):
-        #-------------------------------------------------------------------------------------------
-        # Read proximity - sensor units are centimeters so convert to meters.
-        #-------------------------------------------------------------------------------------------
-        range = self.i2c.readU16(self.__SRF02_RA_RNG_HI)
-        return range / 100
-
-
-####################################################################################################
-#
-#  LEDDAR range finder
-#
-####################################################################################################
-class LEDDAR:
-
-    def __init__(self):
-        #-------------------------------------------------------------------------------------------
-        # Connect to the LEDDAR #AB:
-        #-------------------------------------------------------------------------------------------
-        minimalmodbus.BAUDRATE=115200
-        self.mmb = minimalmodbus.Instrument("/dev/ttyAMA0", 1, 'rtu')
-        self.mmb.BAUDRATE=115200
-        self.mmb.serial.baudrate = 115200
-
-    def reset(self, tilt_ratio):
-        #-------------------------------------------------------------------------------------------
-        # Set up the base readings
-        #-------------------------------------------------------------------------------------------
-        (time_lss, time_mss, temperature, num_detections, distance) = self.mmb.read_registers(20, 5, 4)
-
-        self.prev_timestamp = ((time_mss << 16) + time_lss) / 1000
-
-        distance /= 1000
-        self.prev_distance = distance * tilt_ratio
-
-    def read(self, tilt_ratio):
-        #-------------------------------------------------------------------------------------------
-        # Read the current height and timestamp registers
-        #-------------------------------------------------------------------------------------------
-        (time_lss, time_mss, temperature, num_detections, distance) = self.mmb.read_registers(20, 5, 4)
-
-        #-------------------------------------------------------------------------------------------
-        # Convert units for returned values.
-        #-------------------------------------------------------------------------------------------
-        timestamp = ((time_mss << 16) + time_lss) / 1000
-        distance /= 1000
-        dt = (timestamp - self.prev_timestamp)
-
-        #-------------------------------------------------------------------------------------------
-        # LEDDAR results are in mm and ms therefore mm/ms is the same as m/s that we need.  Compensate
-        # for any tilt for the new distance reading
-        #-------------------------------------------------------------------------------------------
-        distance *= tilt_ratio
-        velocity = (distance - self.prev_distance) / (timestamp - self.prev_timestamp)
-
-        self.prev_timestamp = timestamp
-        self.prev_distance = distance
-
-        return distance, dt, velocity
-
 
 ####################################################################################################
 #
@@ -1219,9 +1102,7 @@ def CheckCLI(argv):
         cli_yri_gain = 10.0  # Floppy props: 8.0
         cli_yrd_gain = 0.0
 
-    #-----------------------------------------------------------------------------------------------
-    # Right, let's get on with reading the command line and checking consistency
-    #-----------------------------------------------------------------------------------------------
+    # command line arguments with options
     try:
         opts, args = getopt.getopt(argv,'df:gvh:r:', ['tc=', 'tau=', 'vvp=', 'vvi=', 'vvd=', 'hvp=', 'hvi=', 'hvd=', 'prp=', 'pri=', 'prd=', 'rrp=', 'rri=', 'rrd=', 'tau=', 'yrp=', 'yri=', 'yrd='])
     except getopt.GetoptError:
